@@ -3,12 +3,18 @@
 #include<cmath>
 #include<queue>
 #include<cstdlib>
+#include<stack>
 
 using namespace std;
 
 #define PI 3.14159265
 #define RIGHT_ANGLE_DEGREE 90
 #define RIGHT_ANGLE PI/2
+
+#define NUM_MIN_POINT 3
+
+#define LEFT_TURN 1
+#define NON_LEFT_TURN -1
 
 class GPoint;
 
@@ -71,21 +77,47 @@ double compareAngle(const G_Point *lp , const G_Point *rp){
     return angle;
 }
 
-struct ComparePointsByAngle{
-    bool operator()(const G_Point &lhs , const G_Point &rhs) const{
-        double angle_lhs = compareAngle(min_point , &lhs);
-        double angle_rhs = compareAngle(min_point , &rhs);
+struct ComparePointsByAngle : public std::binary_function<G_Point*, G_Point*, bool> {
+    bool operator()(const G_Point *lhs , const G_Point *rhs) const{
+        double angle_lhs = compareAngle(min_point , lhs);
+        double angle_rhs = compareAngle(min_point , rhs);
 
         /**
         * For min heap
         **/
         if(angle_lhs == angle_rhs){
-            return (lhs.get_x() > rhs.get_x());
+            return (lhs->get_x() > rhs->get_x());
         }
 
         return angle_lhs > angle_rhs;
     }
 };
+
+int determine_turn(G_Point *rp1 , G_Point *rp2 , G_Point *p){
+    /**
+    * To determine whether the p causes left turn w.r to the reference points rp1 , rp2
+    * we need to find the cross product of
+        ( rp1 , rp2 ) Cross ( rp1 , p )
+
+        If the result is positive it means the p needs left turn
+        If the result is negative it means the p needs right/non-left turn
+    **/
+
+    double x1 = rp2->get_x() - rp1->get_x();
+    double y1 = rp2->get_y() - rp1->get_y();
+
+    double x2 = p->get_x() - rp1->get_x();
+    double y2 = p->get_y() - rp1->get_y();
+
+    double determinate = x1*y2 - x2*y1;
+
+    if(determinate >= 0){
+        return LEFT_TURN;
+    }
+
+    return NON_LEFT_TURN;
+}
+
 
 int main()
 {
@@ -130,8 +162,59 @@ int main()
     * Now based on thsi point we will try to sort by the angle other points create with keeping it as origin.
     * We can run through the points and maintain a priority queue based on the angle.
     **/
+    priority_queue<G_Point*, vector<G_Point*> , ComparePointsByAngle  > *pq = new priority_queue<G_Point* , vector<G_Point*> ,ComparePointsByAngle>();
 
-    priority_queue<G_Point, vector<G_Point> , ComparePointsByAngle  > *p = new priority_queue<G_Point , vector<G_Point> ,ComparePointsByAngle>();
+    for(input_points_iterator = input_points->begin() ; input_points_iterator != input_points->end() ; input_points_iterator++){
+        G_Point *current_point = *input_points_iterator;
+        if(current_point != min_point){
+            pq->push(current_point);
+        }
+    }
+
+    stack<G_Point* , vector<G_Point*> > *S = new stack<G_Point* , vector<G_Point*> >();
+
+    G_Point *p0 = min_point;
+    S->push(p0);
+
+    if(pq->size() >= NUM_MIN_POINT){
+        G_Point *p1 = pq->top();
+        pq->pop();
+        S->push(p1);
+
+        G_Point *p2 = pq->top();
+        pq->pop();
+        S->push(p2);
+    }
+
+    while(!pq->empty()){
+        G_Point* pi = pq->top();
+
+        int turn_type;
+        do{
+
+            G_Point* top = S->top();
+            S->pop();
+
+            G_Point *next_to_top = S->top();
+
+            S->push(top);
+
+            turn_type = determine_turn( next_to_top , top , pi);
+
+            if(turn_type == NON_LEFT_TURN){
+                S->pop();
+            }
+
+        }while(turn_type == NON_LEFT_TURN);
+
+        S->push(pi);
+
+        pq->pop();
+    }
+
+    /**
+    * S: (stack ) should have the points which constitutes the convex hull in counter clickwise order
+    **/
 
     /**
     * Freeing up the memory so that the program can release the memory
@@ -142,6 +225,7 @@ int main()
         free(current_point);
     }
     free(input_points);
-    free(p);
+    free(pq);
+    free(S);
     return 0;
 }
