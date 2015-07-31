@@ -1,9 +1,10 @@
-#include <iostream>
+#include<iostream>
 #include<vector>
 #include<cmath>
 #include<queue>
 #include<cstdlib>
 #include<stack>
+#include<fstream>
 
 using namespace std;
 
@@ -16,6 +17,8 @@ using namespace std;
 #define LEFT_TURN 1
 #define NON_LEFT_TURN -1
 
+#define FULL_ANGLE 180
+
 class GPoint;
 
 class G_Point{
@@ -25,6 +28,11 @@ public:
     double y;
     double r;
     double theta;
+
+    G_Point(double _x , double _y){
+        x = _x;
+        y = _y;
+    }
 
     double get_x() const{
         return x;
@@ -72,6 +80,10 @@ double compareAngle(const G_Point *lp , const G_Point *rp){
     else{
        slope = del_y/del_x;
        angle  = atan(slope)*180/PI;
+
+       if(angle < 0){
+            angle  = FULL_ANGLE + angle;
+       }
     }
 
     return angle;
@@ -79,8 +91,8 @@ double compareAngle(const G_Point *lp , const G_Point *rp){
 
 struct ComparePointsByAngle : public std::binary_function<G_Point*, G_Point*, bool> {
     bool operator()(const G_Point *lhs , const G_Point *rhs) const{
-        double angle_lhs = compareAngle(min_point , lhs);
-        double angle_rhs = compareAngle(min_point , rhs);
+        double angle_lhs = compareAngle(lhs , min_point);
+        double angle_rhs = compareAngle(rhs , min_point);
 
         /**
         * For min heap
@@ -121,6 +133,51 @@ int determine_turn(G_Point *rp1 , G_Point *rp2 , G_Point *p){
 
 int main()
 {
+
+    char *INPUT_FILE_NAME = "input1.txt";
+    char *OUTPUT_FILE_NAME = "output.txt";
+
+    /**
+    * Process the input from the input file
+    **/
+    ifstream input_file_stream;
+    ofstream output_file_stream;
+
+    input_file_stream.open(INPUT_FILE_NAME);
+    output_file_stream.open(OUTPUT_FILE_NAME);
+
+    vector<G_Point *> *input_points = new vector<G_Point *>();
+
+    int num_points = 0;
+
+    if(input_file_stream.good()){
+        /**
+        * Get the count of the points at first
+        **/
+        input_file_stream >> num_points;
+    }
+
+    if(num_points > 0){
+        while(input_file_stream.good()){
+            /**
+            *
+            **/
+            double _x = 0 , _y = 0;
+
+            input_file_stream >> _x;
+
+            if(!input_file_stream.good()){
+                break;
+            }
+
+            input_file_stream >> _y;
+
+            G_Point *input_point = new G_Point(_x , _y);
+
+            input_points->push_back(input_point);
+        }
+    }
+
     /**
     * Firstly we need to find the bottomest and leftest point
     * So this should be done in O(n) since we need to go through each point and find the
@@ -128,8 +185,6 @@ int main()
     *
     * So while scanning we can get the bottom and leftest point which should optimize the process a bit.
     **/
-    vector<G_Point *> *input_points = new vector<G_Point *>();
-
     vector<G_Point *>::iterator input_points_iterator;
 
     for( input_points_iterator = input_points->begin() ; input_points_iterator != input_points->end(); input_points_iterator++){
@@ -212,6 +267,48 @@ int main()
         pq->pop();
     }
 
+
+    stack<G_Point* , vector<G_Point*> > *SB = new stack<G_Point* , vector<G_Point*> >();
+
+    if(S->size() > 0){
+        output_file_stream << S->size();
+        output_file_stream << "\n\r";
+
+        cout << S->size();
+        cout << "\n\r";
+    }
+    while(!S->empty()){
+
+        G_Point *output_point = S->top();
+
+        output_file_stream << "( ";
+        output_file_stream << output_point->get_x();
+        output_file_stream << " , ";
+        output_file_stream << output_point->get_y();
+        output_file_stream << " )";
+
+        cout<< "( ";
+        cout<< output_point->get_x();
+        cout<< " , ";
+        cout<< output_point->get_y();
+        cout<< " )";
+
+        SB->push(output_point);
+        S->pop();
+
+        output_file_stream << "\n\r";
+
+        cout << "\n\r";
+    }
+
+    while(!SB->empty()){
+        S->push(SB->top());
+        SB->pop();
+    }
+
+    input_file_stream.close();
+    output_file_stream.close();
+
     /**
     * S: (stack ) should have the points which constitutes the convex hull in counter clickwise order
     **/
@@ -224,8 +321,11 @@ int main()
         G_Point *current_point = *input_points_iterator;
         free(current_point);
     }
+
     free(input_points);
     free(pq);
     free(S);
+    free(SB);
+
     return 0;
 }

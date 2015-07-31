@@ -27,3 +27,6 @@
 *.out
 *.app
 *.layout
+*.project
+*.cproject
+.depend

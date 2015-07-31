@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1438360120 source:/home/maksud/CodeblocksWorkspace/GrahamScan/GrahamScan/main.cpp
+	<iostream>
+	<vector>
+	<cmath>
+	<queue>
+	<cstdlib>
+	<stack>
+	<fstream>
+
