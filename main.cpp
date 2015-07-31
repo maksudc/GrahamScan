@@ -66,7 +66,7 @@ G_Point *min_point = NULL;
 
 double compareAngle(const G_Point *lp , const G_Point *rp){
     /**
-    * Find the angle assuming lp as the root
+    * Find the angle assuming rp as the root
     **/
     double del_y = lp->get_y()  - rp->get_y();
     double del_x = lp->get_x()  - rp->get_x();
